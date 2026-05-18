@@ -1,14 +1,11 @@
+use systemlab21::check_conflict;
 use systemlab21::tracing::init_tracing;
 
 use axum::{
     Router,
-    extract::State,
     http::StatusCode,
-    response::Json,
     routing::{get, post},
 };
-use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tower_http::timeout::TimeoutLayer;
@@ -22,7 +19,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/status", get(|| async { "this is an experiment" }))
-        .route("/check_conflicts", post(handle))
+        .route("/check_conflicts", post(check_conflict::handle))
         .with_state(app_state)
         .layer((
             TraceLayer::new_for_http(),
@@ -33,18 +30,5 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
 
-    axum::serve(listener, app).await;
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Input {
-    msg: String,
-}
-
-async fn handle(State(state): State<Arc<Mutex<u64>>>, Json(_event): Json<Input>) -> Json<Value> {
-    let mut point = state
-        .lock()
-        .expect("unlocking mutex should not return an error");
-    *point += 1;
-    Json(json!({"status": "Ok"}))
+    let _ = axum::serve(listener, app).await;
 }
