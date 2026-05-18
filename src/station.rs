@@ -23,7 +23,7 @@ impl Node {
     }
 }
 
-// #[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub struct Edge {
     to: Weak<Node>,
     occupied: bool,
@@ -65,6 +65,8 @@ impl Station {
             let end_node = Rc::new(Node::new(&end));
             let edge = Edge::new(Rc::downgrade(&end_node));
             let reverse_edge = Edge::new(Rc::downgrade(&start_node));
+
+            // TODO: make own function add edge
 
             // Add node and edge to the station
             if let Some(v) = nodes.get_mut(&end_node) {
@@ -129,7 +131,10 @@ impl Station {
                 let (start_node, _) = self.nodes.get_key_value(&Node::new(&start)).unwrap();
                 let (end_node, _) = self.nodes.get_key_value(&Node::new(&end)).unwrap();
                 let path = self.bread_first_search(Rc::clone(start_node), Rc::clone(end_node));
-                zip(path.iter(), path.iter().skip(1)).map(|(x, y)| self.update_edge(x, y));
+                println!("{path:?}");
+                for (x, y) in zip(path.iter(), path.iter().skip(1)) {
+                    self.update_edge(x, y);
+                }
             }
         }
     }
@@ -152,6 +157,26 @@ impl Station {
                 }
             }
         }
+    }
+
+    pub fn check_route(&self, StationEdge { start, end }: StationEdge) -> bool {
+        let (start_node, _) = self.nodes.get_key_value(&Node::new(&start)).unwrap();
+        let (end_node, _) = self.nodes.get_key_value(&Node::new(&end)).unwrap();
+        let path = self.bread_first_search(Rc::clone(start_node), Rc::clone(end_node));
+        let edges = zip(path.iter(), path.iter().skip(1)).map(|(x, y)| self.get_edge(x, y));
+        edges
+            .map(|edge| edge.is_none_or(|x| x.occupied))
+            .all(|x| !x)
+    }
+
+    fn get_edge(&self, node: &Rc<Node>, to: &Rc<Node>) -> Option<&Edge> {
+        let mut edge = None;
+        if let Some(edges) = self.nodes.get(node) {
+            edge = edges
+                .iter()
+                .find(|x| x.to.upgrade().is_some_and(|rc| rc == *to))
+        }
+        edge
     }
 }
 
@@ -198,13 +223,24 @@ mod tests {
     fn test_update_occupancy() {
         let raw_routes = r#"
         [
-            {"start": "Entry Signal West", "end": "Exit Signal East 1", "occupied": false },
-            {"start": "Entry Signal West", "end": "Exit Signal East 2", "occupied": false }
+            {"start": "Entry Signal West", "end": "Exit Signal West 1", "occupied": false },
+            {"start": "Entry Signal West", "end": "Exit Signal West 2", "occupied": true }
         ]
         "#;
         let inputs: Vec<StationEdgeState> = serde_json::from_str(raw_routes).unwrap();
         let mut station = create_station();
         station.update_occupancy(inputs);
+
+        let entry_signal_west = Node::new("Entry Signal West");
+        let edges_entry_signal_west = station.nodes.get(&entry_signal_west).unwrap();
+        println!("{edges_entry_signal_west:?}");
+
+        assert!(
+            edges_entry_signal_west
+                .iter()
+                .find(|x| x.occupied)
+                .is_some()
+        )
     }
 
     #[test]
@@ -217,6 +253,6 @@ mod tests {
         assert!(!path.is_empty());
         assert_eq!(path.first().unwrap().id, "Station West");
         assert_eq!(path.last().unwrap().id, "Exit Signal West 2");
-        assert_eq!(path.len(), 4); // Station West -> Entry Signal West -> Point 0 -> Exit Signal West 2
+        assert_eq!(path.len(), 4);
     }
 }
