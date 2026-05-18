@@ -1,5 +1,5 @@
-use systemlab21::check_conflict;
-use systemlab21::tracing::init_tracing;
+use systemlab21::routes::check_conflicts;
+use systemlab21::utils;
 
 use axum::{
     Router,
@@ -13,13 +13,13 @@ use tower_http::trace::TraceLayer;
 
 #[tokio::main]
 async fn main() {
-    init_tracing();
+    utils::init_tracing();
 
     let app_state = Arc::new(Mutex::new(0));
 
     let app = Router::new()
         .route("/status", get(|| async { "this is an experiment" }))
-        .route("/check_conflicts", post(check_conflict::handle))
+        .route("/check_conflicts", post(check_conflicts::handler))
         .with_state(app_state)
         .layer((
             TraceLayer::new_for_http(),
@@ -32,3 +32,4 @@ async fn main() {
 
     let _ = axum::serve(listener, app).await;
 }
+
