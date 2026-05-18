@@ -6,7 +6,6 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
@@ -15,12 +14,9 @@ use tower_http::trace::TraceLayer;
 async fn main() {
     utils::init_tracing();
 
-    let app_state = Arc::new(Mutex::new(0));
-
     let app = Router::new()
         .route("/status", get(|| async { "this is an experiment" }))
         .route("/check_conflicts", post(check_conflicts::handler))
-        .with_state(app_state)
         .layer((
             TraceLayer::new_for_http(),
             TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, Duration::from_secs(10)),
@@ -32,4 +28,3 @@ async fn main() {
 
     let _ = axum::serve(listener, app).await;
 }
-

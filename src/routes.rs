@@ -1,13 +1,14 @@
-use axum::{extract::State, response::Json};
+use axum::response::Json;
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
+
+use crate::station::{Station, StationInput};
 
 pub mod check_conflicts {
     use super::*;
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Input {
-        station_graph: String,
+        station_graph: Vec<StationInput>,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -15,14 +16,8 @@ pub mod check_conflicts {
         success: bool,
     }
 
-    pub async fn handler(
-        State(state): State<Arc<Mutex<u64>>>,
-        Json(_event): Json<Input>,
-    ) -> Json<Output> {
-        let mut point = state
-            .lock()
-            .expect("unlocking mutex should not return an error");
-        *point += 1;
+    pub async fn handler(Json(payload): Json<Input>) -> Json<Output> {
+        let _station = Station::new(payload.station_graph);
         Json(Output { success: true })
     }
 }
