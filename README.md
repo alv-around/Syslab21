@@ -13,12 +13,12 @@ This are some of the things I have noticed while developing (the check fields
 are implemented):
 
 - [x] The Station is a directed graph
-- [ ] A valid Route should be valid path from start note to end node
+- [x] A valid Route should be valid path from start note to end node
 - [? ] A point should be preceded by a Entry Signal and followed by an exit
   signal
-- [ ] Looking at the request, in the body the state is given, so there is no
+- [x] Looking at the request, in the body the state is given, so there is no
       need to store any info in the server. So the http server can be stateless.
-- [ ] to check the path we are only given start and end so we need a path
+- [x] to check the path we are only given start and end so we need a path
       searching algorithm (like bfs or dfs) and assert that the path is not
       "occupied"
 - [ ] Although we have a nix-shell which help us with the local environment. we
