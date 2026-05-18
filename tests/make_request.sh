@@ -32,6 +32,5 @@ true },
  {"start": "Exit Signal West 2", "end": "Station West", "occupied":
 false }
  ],
- "check_route": {"start": "Entry Signal West", "end": "Exit Signal East
-2" }
+ "check_route": {"start": "Entry Signal West", "end": "Exit Signal East 2"}
 }'

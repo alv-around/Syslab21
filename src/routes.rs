@@ -1,14 +1,16 @@
 use axum::response::Json;
 use serde::{Deserialize, Serialize};
 
-use crate::station::{Station, StationInput};
+use crate::station::{Station, StationEdge, StationEdgeState};
 
 pub mod check_conflicts {
     use super::*;
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Input {
-        station_graph: Vec<StationInput>,
+        station_graph: Vec<StationEdge>,
+        routes: Vec<StationEdgeState>,
+        check_route: StationEdge,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -17,7 +19,8 @@ pub mod check_conflicts {
     }
 
     pub async fn handler(Json(payload): Json<Input>) -> Json<Output> {
-        let _station = Station::new(payload.station_graph);
+        let mut station = Station::new(payload.station_graph);
+        station.update_occupancy(payload.routes);
         Json(Output { success: true })
     }
 }
