@@ -60,43 +60,39 @@ impl Station {
     pub fn new(inputs: Vec<StationEdge>) -> Self {
         let mut nodes: HashMap<Rc<Node>, Vec<Edge>> = HashMap::new();
         for StationEdge { start, end } in inputs {
-            // if End node is not in the graph insert
-            let start_node = Rc::new(Node::new(&start));
-            let end_node = Rc::new(Node::new(&end));
-            let edge = Edge::new(Rc::downgrade(&end_node));
-            let reverse_edge = Edge::new(Rc::downgrade(&start_node));
+            let start_node = Node::new(&start);
+            let end_node = Node::new(&end);
 
-            // TODO: make own function add edge
+            nodes.entry(Rc::new(start_node.clone())).or_default();
+            nodes.entry(Rc::new(end_node.clone())).or_default();
 
-            // Add node and edge to the station
-            if let Some(v) = nodes.get_mut(&end_node) {
-                v.push(reverse_edge);
-            } else {
-                nodes.insert(end_node, vec![reverse_edge]);
-            }
+            let start_rc = nodes.get_key_value(&start_node).unwrap().0.clone();
+            let end_rc = nodes.get_key_value(&end_node).unwrap().0.clone();
 
-            // Add node and edge to the station
-            if let Some(v) = nodes.get_mut(&start_node) {
-                v.push(edge);
-            } else {
-                nodes.insert(start_node, vec![edge]);
-            }
+            let edge = Edge::new(Rc::downgrade(&end_rc));
+            let reverse_edge = Edge::new(Rc::downgrade(&start_rc));
+
+            nodes.get_mut(&start_rc).unwrap().push(edge);
+            nodes.get_mut(&end_rc).unwrap().push(reverse_edge);
         }
         Self { nodes }
     }
 
     fn bread_first_search(&self, start: Rc<Node>, end: Rc<Node>) -> Vec<Rc<Node>> {
+        tracing::debug!("calculating path between: {start:?} - {end:?}");
         let mut path = vec![];
         let mut queue = VecDeque::new();
         let mut visited = HashSet::new();
         let mut parent_map = HashMap::new();
 
-        visited.insert(Rc::clone(&start));
         queue.push_back(start);
 
         while let Some(node) = queue.pop_front()
             && let Some(edges) = self.nodes.get(&node)
         {
+            visited.insert(Rc::clone(&node));
+            println!("Pop Node to the queue: {node:?}");
+
             if node == end {
                 let mut parent = Some(end);
                 while let Some(parent_node) = parent {
@@ -104,19 +100,22 @@ impl Station {
                     parent = parent_map.get(&parent_node).cloned();
                 }
                 path.reverse();
+                println!("path found: {path:?}");
                 return path;
             }
 
             for edge in edges {
+                println!("edge: {edge:?}");
                 if let Some(upgraded) = edge.to.upgrade()
                     && !visited.contains(&upgraded)
                 {
-                    visited.insert(Rc::clone(&upgraded));
                     queue.push_back(Rc::clone(&upgraded));
                     parent_map.insert(Rc::clone(&upgraded), Rc::clone(&node));
+                    println!("Adding Node: {upgraded:?}  and updating parent to: {node:?}");
                 }
             }
         }
+        tracing::debug!("path found: {path:?}");
         path
     }
 
@@ -144,6 +143,7 @@ impl Station {
             for edge in edges {
                 let is_equal = edge.to.upgrade().is_some_and(|rc| rc == *end);
                 if is_equal {
+                    tracing::debug!("updating edge between: {start:?}-{end:?}");
                     edge.occupied = true;
                 }
             }
@@ -152,6 +152,7 @@ impl Station {
                 for edge in edges {
                     let is_equal = edge.to.upgrade().is_some_and(|rc| rc == *start);
                     if is_equal {
+                        tracing::debug!("updating edge between: {end:?}-{start:?}");
                         edge.occupied = true;
                     }
                 }
@@ -253,6 +254,12 @@ mod tests {
         assert!(!path.is_empty());
         assert_eq!(path.first().unwrap().id, "Station West");
         assert_eq!(path.last().unwrap().id, "Exit Signal West 2");
+        assert_eq!(path.len(), 4);
+
+        let path = station.bread_first_search(Rc::clone(&end), Rc::clone(&start));
+        assert!(!path.is_empty());
+        assert_eq!(path.last().unwrap().id, "Station West");
+        assert_eq!(path.first().unwrap().id, "Exit Signal West 2");
         assert_eq!(path.len(), 4);
     }
 }
