@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let url = "http://localhost:3000/check_conflicts";
 
     let resp: Output = client.post(url).json(&body).send().await?.json().await?;
-    assert_eq!(resp.success, false);
+    assert!(!resp.success);
 
     Ok(())
 }
