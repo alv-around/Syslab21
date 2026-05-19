@@ -29,3 +29,17 @@ are implemented):
 
 - If cargo is not installed in your machine and you have nix, you create a
   virtual environment by running: `nix develop`
+- You can run the service in a container by running:
+
+  ```console
+  > podman builf -f Dockerfile -t systemlab21
+  > podman run systemlab21
+  ```
+
+- Push the image to your registry and run :
+
+  ```consle
+  > kubectl apply -f k8s/deployment.yml
+  ```
+
+- make sure that everything works with: `./test/make_request.sh`
