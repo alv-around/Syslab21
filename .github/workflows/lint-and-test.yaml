@@ -1,0 +1,30 @@
+on: [push]
+
+env:
+  CARGO_TERM_COLOR: always
+
+name: Lint and Test
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: rust:1.95.0 
+    steps:
+      - uses: actions/checkout@v4
+      - name: check
+        run: cargo check --verbose
+      - name: clippy
+        run: cargo clippy --no-deps -- -D warnings
+  
+  unit-test:
+    runs-on: ubuntu-latest
+    container:
+      image: rust:1.95.0 
+    steps:
+      - uses: actions/checkout@v4
+      - name: run unit-test
+        run: cargo test --lib --verbose 
+      # - name: run e2e
+      #   run: cargo test --test '*'
